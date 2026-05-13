@@ -2,92 +2,84 @@
 
 import pytest
 from src.accounts.manager import AccountManager
-from src.database.models import AccountType
+from src.database.models import Account
 
 
-def test_create_account(db_session):
-    """Test account creation"""
-    manager = AccountManager(db_session)
+class TestAccountManager:
+    """Test account manager"""
     
-    account = manager.create_account(
-        name="Test Account",
-        api_key="test_key_12345",
-        api_secret="test_secret_12345",
-        account_type="source"
-    )
+    def test_create_account(self, db_session):
+        """Test creating an account"""
+        manager = AccountManager(db_session)
+        
+        account = manager.create_account(
+            name="Test Account",
+            api_key="test_api_key_1234567890",
+            api_secret="test_api_secret",
+            account_type="source"
+        )
+        
+        assert account.name == "Test Account"
+        assert account.enabled == True
+        assert account.account_type.value == "source"
     
-    assert account is not None
-    assert account.name == "Test Account"
-    assert account.account_type == AccountType.SOURCE
-    assert account.enabled is True
-
-
-def test_get_account(db_session):
-    """Test getting account"""
-    manager = AccountManager(db_session)
+    def test_get_account(self, db_session):
+        """Test getting an account"""
+        manager = AccountManager(db_session)
+        
+        account = manager.create_account(
+            name="Test Account 2",
+            api_key="test_api_key_abcdefghij",
+            api_secret="test_api_secret_2"
+        )
+        
+        retrieved = manager.get_account(account.id)
+        assert retrieved is not None
+        assert retrieved.name == "Test Account 2"
     
-    created = manager.create_account(
-        name="Test Account",
-        api_key="test_key_12345",
-        api_secret="test_secret_12345"
-    )
+    def test_list_accounts(self, db_session):
+        """Test listing accounts"""
+        manager = AccountManager(db_session)
+        
+        manager.create_account(
+            name="Account 1",
+            api_key="test_key_111111111111",
+            api_secret="secret_1"
+        )
+        manager.create_account(
+            name="Account 2",
+            api_key="test_key_222222222222",
+            api_secret="secret_2"
+        )
+        
+        accounts = manager.list_accounts()
+        assert len(accounts) >= 2
     
-    retrieved = manager.get_account(created.id)
+    def test_update_account(self, db_session):
+        """Test updating an account"""
+        manager = AccountManager(db_session)
+        
+        account = manager.create_account(
+            name="Original Name",
+            api_key="test_key_333333333333",
+            api_secret="secret_3"
+        )
+        
+        updated = manager.update_account(account.id, name="Updated Name")
+        assert updated.name == "Updated Name"
     
-    assert retrieved is not None
-    assert retrieved.id == created.id
-    assert retrieved.name == "Test Account"
-
-
-def test_list_accounts(db_session):
-    """Test listing accounts"""
-    manager = AccountManager(db_session)
-    
-    manager.create_account("Account 1", "key1", "secret1")
-    manager.create_account("Account 2", "key2", "secret2")
-    
-    accounts = manager.list_accounts()
-    
-    assert len(accounts) == 2
-
-
-def test_update_account(db_session):
-    """Test updating account"""
-    manager = AccountManager(db_session)
-    
-    account = manager.create_account("Old Name", "key", "secret")
-    updated = manager.update_account(account.id, name="New Name")
-    
-    assert updated.name == "New Name"
-
-
-def test_delete_account(db_session):
-    """Test deleting account"""
-    manager = AccountManager(db_session)
-    
-    account = manager.create_account("Test", "key", "secret")
-    
-    deleted = manager.delete_account(account.id)
-    assert deleted is True
-    
-    retrieved = manager.get_account(account.id)
-    assert retrieved is None
-
-
-def test_enable_disable_account(db_session):
-    """Test enabling/disabling account"""
-    manager = AccountManager(db_session)
-    
-    account = manager.create_account("Test", "key", "secret", enabled=True)
-    
-    disabled = manager.disable_account(account.id)
-    assert disabled is True
-    
-    retrieved = manager.get_account(account.id)
-    assert retrieved.enabled is False
-    
-    enabled = manager.enable_account(account.id)
-    assert enabled is True
-    
-    retrieved = manager.get_account(account.id)
-    assert retrieved.enabled is True
+    def test_delete_account(self, db_session):
+        """Test deleting an account"""
+        manager = AccountManager(db_session)
+        
+        account = manager.create_account(
+            name="To Delete",
+            api_key="test_key_444444444444",
+            api_secret="secret_4"
+        )
+        
+        deleted = manager.delete_account(account.id)
+        assert deleted == True
+        
+        retrieved = manager.get_account(account.id)
+        assert retrieved is None

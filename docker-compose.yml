@@ -2,59 +2,37 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15
-    container_name: lolypoly_db
+    image: postgres:15-alpine
     environment:
       POSTGRES_DB: lolypoly
-      POSTGRES_USER: lolypoly
-      POSTGRES_PASSWORD: lolypoly_password
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U lolypoly"]
+      test: ["CMD-SHELL", "pg_isready -U user"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: lolypoly_redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: lolypoly_app
-    environment:
-      DATABASE_URL: postgresql://lolypoly:lolypoly_password@postgres/lolypoly
-      REDIS_URL: redis://redis:6379
-      API_HOST: 0.0.0.0
-      API_PORT: 8000
-      DEBUG: "False"
+  api:
+    build: .
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://user:password@postgres:5432/lolypoly
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DEBUG: "false"
+      LOG_LEVEL: info
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     volumes:
-      - ./src:/app/src
-      - ./config:/app/config
       - ./logs:/app/logs
-    command: python -m src.main
+      - ./config:/app/config
 
 volumes:
   postgres_data:
-  redis_data:

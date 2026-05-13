@@ -1,287 +1,185 @@
-# LolyPoly - Trading Copy Bot
+# LolyPoly Trading Bot
 
-Автоматизированный бот для копирования сделок с нескольких аккаунтов Pooymarket с поддержкой гибких стратегий фильтрации и анализа.
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Возможности
+Роботизированная система копирования торговых сделок между торговыми счетами на Pooymarket.
 
-✅ **Управление аккаунтами**
-- Добавление и отслеживание нескольких аккаунтов
-- Настройка прав доступа и API ключей
-- Ведение статистики по каждому аккаунту
+## Особенности
 
-✅ **Стратегии копирования**
-- Полное копирование сделок
-- Выборочное копирование с фильтрами
-- Изменение объёма сделок (процент, коэффициент)
-- Фильтры по сумме сделки (от/до)
-- Установка проскальзывания
-- Фильтры по времени завершения (часы, дни, месяцы)
-- Включение/отключение копирования в реальном времени
-
-✅ **Технология**
-- WebSocket для отслеживания сделок в реальном времени
-- REST API для аналитики
-- SQLite/PostgreSQL для хранения данных
-- Асинхронная архитектура
-- Логирование и мониторинг
-
-## Структура проекта
-
-```
-lolypoly/
-├── src/
-│   ├── __init__.py
-│   ├── main.py                 # Точка входа приложения
-│   ├── config.py              # Конфигурация
-│   ├── database/
-│   │   ├── __init__.py
-│   │   ├── models.py          # SQLAlchemy модели
-│   │   ├── database.py        # Инициализация БД
-│   │   └── migrations.py      # Миграции
-│   ├── accounts/
-│   │   ├── __init__.py
-│   │   ├── manager.py         # Управление аккаунтами
-│   │   └── models.py          # Модели аккаунтов
-│   ├── strategies/
-│   │   ├── __init__.py
-│   │   ├── manager.py         # Управление стратегиями
-│   │   ├── filters.py         # Фильтры для копирования
-│   │   └── models.py          # Модели стратегий
-│   ├── trading/
-│   │   ├── __init__.py
-│   │   ├── copier.py          # Основной копировщик сделок
-│   │   ├── ws_client.py       # WebSocket клиент
-│   │   └── pooymarket_api.py  # API интеграция
-│   ├── analytics/
-│   │   ├── __init__.py
-│   │   ├── stats.py           # Статистика
-│   │   └── reports.py         # Отчёты
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── routes.py          # API маршруты
-│   │   └── schemas.py         # Pydantic схемы
-│   └── utils/
-│       ├── __init__.py
-│       ├── logger.py          # Логирование
-│       └── validators.py      # Валидация
-├── config/
-│   ├── accounts.json          # Конфигурация аккаунтов
-│   └── strategies.json        # Конфигурация стратегий
-├── database/
-│   └── schema.sql             # SQL схема БД
-├── tests/
-│   ├── __init__.py
-│   ├── test_accounts.py
-│   ├── test_strategies.py
-│   └── test_copier.py
-├── logs/                       # Логи приложения
-├── .env.example               # Пример окружения
-├── .gitignore                 # Git ignore
-├── requirements.txt           # Python зависимости
-├── docker-compose.yml         # Docker конфигурация
-├── Dockerfile                 # Docker образ
-└── README.md                  # Документация
-```
+- 📋 **Управление счетами**: Создавайте и управляйте несколькими торговыми счетами
+- 🔄 **Копирование сделок**: Автоматическое копирование сделок от одного счета на другие
+- 🎯 **Фильтры**: Гибкие фильтры для выборочного копирования:
+  - Диапазон размеров сделок (min/max)
+  - Множители размера
+  - Толерантность к проскальзыванию
+  - Фильтр по времени выполнения
+- 📊 **Аналитика**: Статистика по счетам и сделкам
+- 🌐 **REST API**: Полнофункциональный API для управления ботом
+- 🔌 **WebSocket**: Поддержка WebSocket для мониторинга в реальном времени
+- 🐘 **PostgreSQL**: Надежное хранилище данных
 
 ## Установка
 
-### Локальное тестирование
+### Требования
 
-1. **Клонируйте репозиторий:**
+- Python 3.11+
+- PostgreSQL 12+
+- Docker (опционально)
+
+### Быстрый старт
+
+1. **Клонируйте репозиторий**:
 ```bash
 git clone https://github.com/ThemesMonsters/lolypoly.git
 cd lolypoly
 ```
 
-2. **Создайте виртуальное окружение:**
+2. **Создайте виртуальное окружение**:
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# или
-venv\Scripts\activate  # Windows
+source venv/bin/activate  # На Windows: venv\\Scripts\\activate
 ```
 
-3. **Установите зависимости:**
+3. **Установите зависимости**:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Скопируйте конфиг:**
+4. **Установите переменные окружения**:
 ```bash
 cp .env.example .env
+# Отредактируйте .env с вашими параметрами
 ```
 
-5. **Отредактируйте .env файл:**
+5. **Инициализируйте базу данных**:
 ```bash
-nano .env
+python -c "from src.database.database import init_db; init_db()"
 ```
 
-6. **Инициализируйте базу данных:**
-```bash
-python -m src.database.migrations
-```
-
-7. **Запустите приложение:**
+6. **Запустите приложение**:
 ```bash
 python -m src.main
 ```
 
-### Развёртывание на VPS
+API будет доступен на `http://localhost:8000`
 
-1. **Подготовьте сервер:**
-```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install python3-pip python3-venv postgresql postgresql-contrib -y
-```
+### Docker
 
-2. **Клонируйте репозиторий:**
 ```bash
-git clone https://github.com/ThemesMonsters/lolypoly.git
-cd lolypoly
-```
-
-3. **Настройте systemd сервис:**
-```bash
-sudo nano /etc/systemd/system/lolypoly.service
-```
-
-4. **Запустите сервис:**
-```bash
-sudo systemctl enable lolypoly
-sudo systemctl start lolypoly
-sudo systemctl status lolypoly
+docker build -t lolypoly .
+docker run -d -p 8000:8000 --env-file .env lolypoly
 ```
 
 ## Использование
 
-### API Endpoints
+### Создание счета
 
-```
-GET  /api/accounts              - Список аккаунтов
-POST /api/accounts              - Добавить аккаунт
-GET  /api/accounts/{id}         - Информация об аккаунте
-PUT  /api/accounts/{id}         - Обновить аккаунт
-DELETE /api/accounts/{id}       - Удалить аккаунт
-
-GET  /api/strategies            - Список стратегий
-POST /api/strategies            - Создать стратегию
-GET  /api/strategies/{id}       - Информация о стратегии
-PUT  /api/strategies/{id}       - Обновить стратегию
-DELETE /api/strategies/{id}     - Удалить стратегию
-
-GET  /api/trades                - История сделок
-GET  /api/trades/stats          - Статистика сделок
-GET  /api/trades/stats/{account_id}  - Статистика по аккаунту
-
-GET  /api/status                - Статус бота
+```bash
+curl -X POST http://localhost:8000/api/accounts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Trading Account",
+    "api_key": "your_api_key",
+    "api_secret": "your_api_secret",
+    "account_type": "source",
+    "enabled": true
+  }'
 ```
 
-### Конфигурация аккаунтов
+### Создание стратегии
 
-Файл `config/accounts.json`:
-```json
-{
-  "accounts": [
-    {
-      "id": "acc_001",
-      "name": "Главный трейдер",
-      "api_key": "your_api_key",
-      "api_secret": "your_api_secret",
-      "account_type": "source",
-      "enabled": true
-    },
-    {
-      "id": "copy_001",
-      "name": "Копирующий аккаунт",
-      "api_key": "another_api_key",
-      "api_secret": "another_secret",
-      "account_type": "target",
-      "enabled": true
-    }
-  ]
-}
+```bash
+curl -X POST http://localhost:8000/api/strategies \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Copy All Trades",
+    "source_account_id": "acc_xxxxx",
+    "target_accounts": ["acc_yyyyy"],
+    "copy_mode": "full",
+    "enabled": true
+  }'
 ```
 
-### Конфигурация стратегий
+### Получение статистики
 
-Файл `config/strategies.json`:
-```json
-{
-  "strategies": [
-    {
-      "id": "strat_001",
-      "name": "Агрессивная копия",
-      "source_account": "acc_001",
-      "target_accounts": ["copy_001"],
-      "enabled": true,
-      "copy_mode": "selective",
-      "filters": {
-        "min_amount": 100,
-        "max_amount": 5000,
-        "amount_multiplier": 0.5,
-        "slippage_percent": 0.5,
-        "real_time": true,
-        "completion_time": {
-          "type": "hours",
-          "value": 24
-        }
-      }
-    }
-  ]
-}
+```bash
+curl http://localhost:8000/api/trades/stats
 ```
 
-## Фильтры копирования
+## Структура проекта
 
-### Доступные фильтры
+```
+lolyopoly/
+├── src/
+│   ├── accounts/          # Управление счетами
+│   ├── strategies/        # Управление стратегиями
+│   ├── trading/          # Торговая логика
+│   ├── analytics/        # Аналитика и статистика
+│   ├── api/              # REST API
+│   ├── database/         # Модели БД и сессии
+│   ├── utils/            # Утилиты
+│   ├── config.py         # Конфигурация
+│   └── main.py           # Точка входа
+├── tests/                # Тесты
+├── config/               # Примеры конфигов
+├── requirements.txt      # Python зависимости
+├── Dockerfile            # Docker конфигурация
+└── README.md             # Этот файл
+```
 
-- **min_amount** - Минимальная сумма сделки для копирования
-- **max_amount** - Максимальная сумма сделки для копирования
-- **amount_multiplier** - Коэффициент изменения суммы (0.1 = 10% от оригинала)
-- **amount_percent** - Процент от суммы (альтернатива multiplier)
-- **slippage_percent** - Проскальзывание в процентах
-- **real_time** - Копировать только сделки в реальном времени
-- **completion_time** - Фильтр по времени завершения:
-  - `type`: "minutes", "hours", "days", "weeks", "months"
-  - `value`: числовое значение
+## API Endpoints
+
+### Счета
+- `GET /api/accounts` - Список счетов
+- `POST /api/accounts` - Создать счет
+- `GET /api/accounts/{id}` - Получить счет
+- `PUT /api/accounts/{id}` - Обновить счет
+- `DELETE /api/accounts/{id}` - Удалить счет
+
+### Стратегии
+- `GET /api/strategies` - Список стратегий
+- `POST /api/strategies` - Создать стратегию
+- `GET /api/strategies/{id}` - Получить стратегию
+- `PUT /api/strategies/{id}` - Обновить стратегию
+- `DELETE /api/strategies/{id}` - Удалить стратегию
+
+### Аналитика
+- `GET /api/trades/stats` - Статистика всех счетов
+- `GET /api/trades/stats/{account_id}` - Статистика счета
+- `GET /api/status` - Статус бота
+
+## Примеры стратегий
+
+См. папку `config/` для примеров конфигураций:
+- `strategies.json.example` - Примеры стратегий
+- `accounts.json.example` - Примеры конфигов счетов
+
+## Тестирование
+
+```bash
+python -m pytest tests/
+```
 
 ## Логирование
 
-Логи сохраняются в `logs/lolypoly.log` и выводятся в консоль.
+Логи сохраняются в `logs/bot.log` и выводятся в консоль.
 
-Уровни логирования:
-- DEBUG - Детальная информация
-- INFO - Информационные сообщения
-- WARNING - Предупреждения
-- ERROR - Ошибки
-- CRITICAL - Критические ошибки
-
-## Разработка
-
-### Запуск тестов
-
-```bash
-pytest tests/ -v
-```
-
-### Docker развёртывание
-
-```bash
-docker-compose up -d
-```
-
-## Безопасность
-
-⚠️ **Важно:**
-- Никогда не коммитьте .env файл с реальными API ключами
-- Используйте переменные окружения для чувствительных данных
-- Регулярно ротируйте API ключи
-- Используйте приватный репозиторий
+Уровень логирования можно установить через переменную `LOG_LEVEL`:
+- `debug`
+- `info` (по умолчанию)
+- `warning`
+- `error`
 
 ## Лицензия
 
-Private
+MIT License - см. LICENSE файл
 
-## Поддержка
+## Контакты
 
-Для вопросов и предложений открывайте Issues в репозитории.
+- GitHub: [@ThemesMonsters](https://github.com/ThemesMonsters)
+- Email: themesmonsterscom@gmail.com
+
+## Благодарности
+
+Спасибо за использование LolyPoly! 🚀
