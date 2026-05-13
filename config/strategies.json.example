@@ -1,0 +1,69 @@
+{
+  "strategies": [
+    {
+      "id": "strat_001",
+      "name": "Агрессивная копия - все сделки",
+      "source_account": "acc_001",
+      "target_accounts": ["copy_001", "copy_002"],
+      "enabled": true,
+      "copy_mode": "full",
+      "filters": {}
+    },
+    {
+      "id": "strat_002",
+      "name": "Консервативная копия - фильтрованные сделки",
+      "source_account": "acc_001",
+      "target_accounts": ["copy_001"],
+      "enabled": true,
+      "copy_mode": "selective",
+      "filters": {
+        "min_amount": 100,
+        "max_amount": 5000,
+        "amount_multiplier": 0.5,
+        "amount_percent": null,
+        "slippage_percent": 0.5,
+        "real_time": true,
+        "completion_time": {
+          "type": "hours",
+          "value": 24
+        }
+      }
+    },
+    {
+      "id": "strat_003",
+      "name": "Микро-копия - маленькие сделки",
+      "source_account": "acc_001",
+      "target_accounts": ["copy_002"],
+      "enabled": true,
+      "copy_mode": "selective",
+      "filters": {
+        "min_amount": 50,
+        "max_amount": 500,
+        "amount_multiplier": 0.1,
+        "slippage_percent": 1.0,
+        "real_time": false,
+        "completion_time": {
+          "type": "days",
+          "value": 1
+        }
+      }
+    },
+    {
+      "id": "strat_004",
+      "name": "Процентная копия - 75% от размера",
+      "source_account": "acc_001",
+      "target_accounts": ["copy_001"],
+      "enabled": true,
+      "copy_mode": "selective",
+      "filters": {
+        "amount_percent": 75,
+        "slippage_percent": 0.3,
+        "real_time": true,
+        "completion_time": {
+          "type": "hours",
+          "value": 12
+        }
+      }
+    }
+  ]
+}
