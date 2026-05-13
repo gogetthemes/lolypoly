@@ -1,0 +1,28 @@
+{
+  "accounts": [
+    {
+      "id": "acc_001",
+      "name": "Главный трейдер",
+      "api_key": "your_api_key_here",
+      "api_secret": "your_api_secret_here",
+      "account_type": "source",
+      "enabled": true
+    },
+    {
+      "id": "copy_001",
+      "name": "Копирующий аккаунт 1",
+      "api_key": "another_api_key_here",
+      "api_secret": "another_api_secret_here",
+      "account_type": "target",
+      "enabled": true
+    },
+    {
+      "id": "copy_002",
+      "name": "Копирующий аккаунт 2",
+      "api_key": "third_api_key_here",
+      "api_secret": "third_api_secret_here",
+      "account_type": "target",
+      "enabled": true
+    }
+  ]
+}
