@@ -1,20 +1,20 @@
-"""Test configuration and fixtures"""
+"""Conftest for pytest fixtures"""
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from src.database.models import Base
-from src.database.database import SessionLocal
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def db_session():
-    """Create in-memory SQLite database for testing"""
+    """Create a test database session"""
+    # Use in-memory SQLite for tests
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     
-    TestingSessionLocal = sessionmaker(bind=engine)
-    session = TestingSessionLocal()
+    SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
     
     yield session
     
