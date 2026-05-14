@@ -4,7 +4,7 @@ import asyncio
 import uvicorn
 from src.config import settings
 from src.database.database import init_db
-from src.api.routes import app
+from src.api.routes_v2 import app
 from src.utils.logger import get_logger
 
 logger = get_logger("main")

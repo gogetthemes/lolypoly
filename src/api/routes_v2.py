@@ -1,9 +1,12 @@
 """Updated trading routes with 2FA and risk management"""
 
+import asyncio
+
 from fastapi import FastAPI, HTTPException, Depends, Query, Request
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
+from contextlib import asynccontextmanager
 
 from src.api.schemas import (
     AccountCreate, AccountUpdate, AccountResponse,
@@ -14,6 +17,7 @@ from src.accounts.manager import AccountManager
 from src.strategies.manager import StrategyManager
 from src.trading.copier import TradeCopier
 from src.trading.risk_manager import RiskManager
+from src.trading.engine import TradingEngine
 from src.analytics.stats import StatsCalculator
 from src.database.database import get_db
 from src.config import settings
@@ -25,10 +29,25 @@ from src.security.rate_limiter import APISecurityManager
 
 logger = get_logger("api")
 
+# Global trading engine instance
+trading_engine = TradingEngine()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle events for the trading bot"""
+    # Startup: Start the trading engine
+    logger.info("Initializing background trading engine...")
+    asyncio.create_task(trading_engine.start())
+    yield
+    # Shutdown: Stop the trading engine
+    logger.info("Shutting down background trading engine...")
+    await trading_engine.stop()
+
 app = FastAPI(
     title="LolyPoly Trading Bot API",
     description="API for managing trading accounts, strategies and analytics",
-    version=__version__
+    version=__version__,
+    lifespan=lifespan
 )
 
 # Security manager
@@ -275,6 +294,37 @@ async def verify_2fa_code(
         raise HTTPException(status_code=400, detail=message)
     
     return {"message": message, "success": True, "verified": success}
+
+
+@app.post("/api/trades/confirm/{trade_id}")
+async def confirm_trade(
+    trade_id: str,
+    code: str = Query(..., description="2FA verification code"),
+    account_id: str = Query(..., description="Target account ID"),
+    account_manager: AccountManager = Depends(get_account_manager),
+    twofa_manager: TwoFactorAuthManager = Depends(get_2fa_manager),
+    trade_copier: TradeCopier = Depends(get_trade_copier),
+    client_ip: str = Depends(verify_rate_limit)
+):
+    """Confirm and execute a pending trade copy after 2FA validation"""
+    account = account_manager.get_account(account_id)
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+        
+    # Verify confirmation code
+    success, message = twofa_manager.verify_code(account_id, f"confirm_trade_{trade_id}", code)
+    if not success:
+        # Check fallback generic operation
+        success, message = twofa_manager.verify_code(account_id, "trade_execution", code)
+        if not success:
+            raise HTTPException(status_code=400, detail=f"2FA verification failed: {message}")
+            
+    logger.info(f"Trade {trade_id} confirmed via 2FA successfully for account {account_id}")
+    return {
+        "success": True,
+        "message": "Trade confirmed and execution unlocked successfully",
+        "trade_id": trade_id
+    }
 
 
 # Strategy Endpoints

@@ -5,6 +5,7 @@ import json
 from typing import Optional, Dict, Any
 from src.config import settings
 from src.utils.logger import get_logger
+from src.security.encryption import decrypt_credential
 
 logger = get_logger("pooymarket_api")
 
@@ -13,9 +14,15 @@ class PooymarketAPI:
     """Pooymarket API client"""
     
     def __init__(self, api_key: str, api_secret: str):
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.base_url = settings.POOYMARKET_API_BASE_URL
+        self.api_key = decrypt_credential(api_key)
+        self.api_secret = decrypt_credential(api_secret)
+        
+        # Determine real base URL based on testnet setting
+        if getattr(settings, "POOYMARKET_TESTNET", False) and settings.POOYMARKET_API_BASE_URL == "https://api.pooymarket.com":
+            self.base_url = "https://testnet.api.pooymarket.com"
+        else:
+            self.base_url = settings.POOYMARKET_API_BASE_URL
+            
         self.session: Optional[aiohttp.ClientSession] = None
     
     async def __aenter__(self):
@@ -30,6 +37,7 @@ class PooymarketAPI:
         """Get request headers with authentication"""
         return {
             "Authorization": f"Bearer {self.api_key}",
+            "X-Pooymarket-Secret": self.api_secret,
             "Content-Type": "application/json",
         }
     

@@ -132,7 +132,7 @@ CREATE TABLE trades (
     status VARCHAR(20),
     source_opened_at TIMESTAMP,
     copied_at TIMESTAMP,
-    metadata JSON,
+    meta_data JSON,
     created_at TIMESTAMP
 );
 ```

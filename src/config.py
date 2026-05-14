@@ -15,10 +15,11 @@ class Settings(BaseSettings):
     # Database Configuration
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "postgresql://user:password@localhost:5432/lolypoly"
+        "postgresql://lolypoly:123456@localhost:5432/lolypoly"
     )
     
     # Pooymarket API Configuration
+    POOYMARKET_TESTNET: bool = os.getenv("POOYMARKET_TESTNET", "false").lower() == "true"
     POOYMARKET_API_BASE_URL: str = os.getenv(
         "POOYMARKET_API_BASE_URL",
         "https://api.pooymarket.com"
@@ -26,6 +27,10 @@ class Settings(BaseSettings):
     POOYMARKET_WS_URL: str = os.getenv(
         "POOYMARKET_WS_URL",
         "wss://ws.pooymarket.com"
+    )
+    ENCRYPTION_KEY: str = os.getenv(
+        "ENCRYPTION_KEY",
+        "kSlE847u5sS2R8X76gP0T80wS1hRzWqB6e8K1s6z75k="
     )
     
     # WebSocket Configuration

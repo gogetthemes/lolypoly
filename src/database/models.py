@@ -77,7 +77,7 @@ class Trade(Base):
     source_opened_at = Column(DateTime, nullable=False)
     copied_at = Column(DateTime, nullable=True)
     closed_at = Column(DateTime, nullable=True)
-    metadata = Column(JSON, default={})
+    meta_data = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     
     strategy = relationship("Strategy", back_populates="trades")

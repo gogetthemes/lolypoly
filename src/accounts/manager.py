@@ -1,11 +1,12 @@
 """Account manager for managing trading accounts"""
 
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 from src.database.models import Account, AccountType, AccountStats
 from src.utils.logger import get_logger
 from src.utils.validators import validate_api_key
+from src.security.encryption import encrypt_credential, decrypt_credential
 
 logger = get_logger("accounts")
 
@@ -25,11 +26,15 @@ class AccountManager:
         
         account_id = f"acc_{uuid.uuid4().hex[:8]}"
         
+        # Securely encrypt API key and secret before storing in database
+        encrypted_key = encrypt_credential(api_key)
+        encrypted_secret = encrypt_credential(api_secret)
+        
         account = Account(
             id=account_id,
             name=name,
-            api_key=api_key,
-            api_secret=api_secret,
+            api_key=encrypted_key,
+            api_secret=encrypted_secret,
             account_type=AccountType(account_type),
             enabled=enabled
         )
@@ -51,6 +56,13 @@ class AccountManager:
     def get_account(self, account_id: str) -> Optional[Account]:
         """Get account by ID"""
         return self.db.query(Account).filter(Account.id == account_id).first()
+    
+    def get_decrypted_credentials(self, account_id: str) -> Optional[Tuple[str, str]]:
+        """Get decrypted API key and secret for an account"""
+        account = self.get_account(account_id)
+        if not account:
+            return None
+        return decrypt_credential(account.api_key), decrypt_credential(account.api_secret)
     
     def list_accounts(self, enabled_only: bool = False) -> List[Account]:
         """List all accounts"""
@@ -85,7 +97,10 @@ class AccountManager:
         
         for key, value in kwargs.items():
             if hasattr(account, key) and key not in ['id', 'created_at']:
-                setattr(account, key, value)
+                if key in ['api_key', 'api_secret'] and value:
+                    setattr(account, key, encrypt_credential(value))
+                else:
+                    setattr(account, key, value)
         
         self.db.commit()
         self.db.refresh(account)

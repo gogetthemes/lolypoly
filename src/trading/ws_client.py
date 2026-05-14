@@ -7,6 +7,7 @@ from typing import Callable, Optional, Dict, Any
 from datetime import datetime
 from src.config import settings
 from src.utils.logger import get_logger
+from src.security.encryption import decrypt_credential
 
 logger = get_logger("ws_client")
 
@@ -15,9 +16,14 @@ class WebSocketClient:
     """WebSocket client for Pooymarket"""
     
     def __init__(self, api_key: str, api_secret: str):
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.ws_url = settings.POOYMARKET_WS_URL
+        self.api_key = decrypt_credential(api_key)
+        self.api_secret = decrypt_credential(api_secret)
+        
+        if getattr(settings, "POOYMARKET_TESTNET", False) and settings.POOYMARKET_WS_URL == "wss://ws.pooymarket.com":
+            self.ws_url = "wss://testnet.ws.pooymarket.com"
+        else:
+            self.ws_url = settings.POOYMARKET_WS_URL
+            
         self.ws = None
         self.connected = False
         self.reconnect_attempts = 0

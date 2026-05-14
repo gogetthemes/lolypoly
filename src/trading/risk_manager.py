@@ -3,7 +3,7 @@
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from src.database.models import Trade
+from src.database.models import Trade, Account
 from src.utils.logger import get_logger
 
 logger = get_logger("risk_manager")
@@ -22,6 +22,33 @@ class RiskManager:
         self.enable_circuit_breaker = config.get("enable_circuit_breaker", True)
         self.circuit_breaker_loss = config.get("circuit_breaker_loss", 5000.0)  # USD
     
+    def check_trade(self, trade_data: Dict[str, Any], account_id: str = None) -> tuple[bool, str]:
+        """Wrapper/alias for checking trade allowance to support custom bots/scripts"""
+        # Fallback account_id if not provided
+        acc_id = account_id or trade_data.get("account_id") or trade_data.get("source_account_id") or "default"
+        return self.check_trade_allowed(trade_data, acc_id)
+        
+    def trigger_emergency_stop(self, account_id: str) -> bool:
+        """Trigger an emergency stop disabling the account due to critical failures"""
+        logger.critical(f"EMERGENCY STOP triggered for account {account_id}")
+        account = self.db.query(Account).filter(Account.id == account_id).first()
+        if account:
+            account.enabled = False
+            self.db.commit()
+            logger.info(f"Account {account_id} has been disabled automatically.")
+            return True
+        return False
+        
+    def rollback_trade(self, trade_id: str) -> bool:
+        """Rollback/revert a trade record upon critical execution failure"""
+        logger.warning(f"Rolling back failed trade record: {trade_id}")
+        trade = self.db.query(Trade).filter(Trade.id == trade_id).first()
+        if trade:
+            trade.status = "rolled_back"
+            self.db.commit()
+            return True
+        return False
+
     def check_trade_allowed(self, trade_data: Dict[str, Any], account_id: str) -> tuple[bool, str]:
         """
         Check if trade is allowed based on risk rules
@@ -54,6 +81,7 @@ class RiskManager:
             if total_loss >= self.circuit_breaker_loss:
                 reason = f"Circuit breaker triggered. Total loss: {total_loss} >= {self.circuit_breaker_loss}"
                 logger.warning(f"Trade rejected: {reason}")
+                self.trigger_emergency_stop(account_id)
                 return False, reason
         
         # Check position size

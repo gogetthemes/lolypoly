@@ -11,7 +11,7 @@ def db_session():
     """Create a test database session"""
     # Use in-memory SQLite for tests
     engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
+    Base.meta_data.create_all(engine)
     
     SessionLocal = sessionmaker(bind=engine)
     session = SessionLocal()

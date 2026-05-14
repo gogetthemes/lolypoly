@@ -9,6 +9,7 @@ from src.database.models import Trade, Strategy, Account
 from src.accounts.manager import AccountManager
 from src.strategies.manager import StrategyManager
 from src.trading.pooymarket_api import PooymarketAPI
+from src.trading.risk_manager import RiskManager
 from src.utils.logger import get_logger
 
 logger = get_logger("copier")
@@ -21,6 +22,14 @@ class TradeCopier:
         self.db = db
         self.account_manager = AccountManager(db)
         self.strategy_manager = StrategyManager(db)
+        self.risk_manager = RiskManager(db, {
+            "max_daily_loss": 1000.0,
+            "max_trade_size": 500.0,
+            "max_position_size": 5000.0,
+            "max_daily_trades": 100,
+            "enable_circuit_breaker": True,
+            "circuit_breaker_loss": 5000.0
+        })
         self.active_api_clients: Dict[str, PooymarketAPI] = {}
     
     async def copy_trade(self, strategy: Strategy, source_trade_data: Dict[str, Any]) -> Optional[Trade]:
@@ -56,6 +65,13 @@ class TradeCopier:
         if not target_account:
             logger.error(f"Target account not found: {target_account_id}")
             return None
+            
+        # Check risk management rules before proceeding
+        risk_payload = {**source_trade_data, "amount": copied_amount}
+        is_allowed, reason = self.risk_manager.check_trade(risk_payload, target_account_id)
+        if not is_allowed:
+            logger.warning(f"Trade copy blocked by Risk Manager for account {target_account_id}: {reason}")
+            return None
         
         # Create trade record
         trade_id = f"trade_{uuid.uuid4().hex[:8]}"
@@ -71,7 +87,7 @@ class TradeCopier:
             original_price=source_trade_data.get("price", 0),
             status="pending",
             source_opened_at=datetime.utcnow(),
-            metadata={
+            meta_data={
                 "filter_summary": trade_filter.get_filter_summary(),
                 "source_trade_id": source_trade_data.get("id")
             }
@@ -93,6 +109,7 @@ class TradeCopier:
         else:
             trade.status = "failed"
             logger.error(f"Trade {trade_id} failed to execute")
+            self.risk_manager.rollback_trade(trade.id)
         
         self.db.commit()
         return trade
@@ -115,7 +132,7 @@ class TradeCopier:
                 
                 if result:
                     trade_record.actual_price = result.get("price")
-                    trade_record.metadata["executed_trade_id"] = result.get("id")
+                    trade_record.meta_data["executed_trade_id"] = result.get("id")
                     self.db.commit()
                     return True
                 else:
@@ -144,7 +161,7 @@ class TradeCopier:
         
         try:
             async with PooymarketAPI(target_account.api_key, target_account.api_secret) as api:
-                executed_trade_id = trade.metadata.get("executed_trade_id")
+                executed_trade_id = trade.meta_data.get("executed_trade_id")
                 if executed_trade_id:
                     success = await api.close_trade(executed_trade_id)
                     
